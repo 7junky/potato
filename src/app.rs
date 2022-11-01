@@ -120,8 +120,8 @@ where
         };
 
         let mut response = handle(Request);
-        stream.write_all(response.data().as_bytes());
-        stream.flush();
+        stream.write_all(response.data().as_bytes())?;
+        stream.flush()?;
 
         Ok(())
     }
