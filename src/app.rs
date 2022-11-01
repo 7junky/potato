@@ -21,7 +21,23 @@ impl Status {
     }
 }
 
-pub struct Request;
+pub struct Request {
+    start_line: String,
+    host: String,
+    user_agent: String,
+    accept: String,
+}
+
+impl Request {
+    pub fn new(start_line: String, host: String, user_agent: String, accept: String) -> Self {
+        Self {
+            start_line,
+            host,
+            user_agent,
+            accept,
+        }
+    }
+}
 
 pub struct Response {
     status: Status,
@@ -128,9 +144,14 @@ where
 
     fn handle_connection<'a>(&'a self, mut stream: TcpStream) -> std::io::Result<()> {
         let buf_reader = BufReader::new(&mut stream);
-        let http_header = buf_reader.lines().next().unwrap().unwrap();
+        let mut request_lines = BufReader::lines(buf_reader);
 
-        let handle = match self.routes.get(&http_header) {
+        let start_line = request_lines.next().unwrap().unwrap();
+        let host = request_lines.next().unwrap().unwrap();
+        let user_agent = request_lines.next().unwrap().unwrap();
+        let accept = request_lines.next().unwrap().unwrap();
+
+        let handle = match self.routes.get(&start_line) {
             Some(handle) => handle.clone(),
             None => {
                 let mut res = Response::default();
@@ -140,7 +161,9 @@ where
             }
         };
 
-        let mut res = handle(Request);
+        let req = Request::new(start_line, host, user_agent, accept);
+
+        let mut res = handle(req);
         Self::respond(&mut stream, &mut res)?;
 
         Ok(())
@@ -154,7 +177,10 @@ mod tests {
 
     fn get_handle(req: Request) -> Response {
         let mut res = Response::default();
-        res.with_content("Hello!".into());
+        res.with_content(format!(
+            "You sent: {}, {}, {} and {}",
+            req.start_line, req.host, req.user_agent, req.accept
+        ));
         res
     }
 
