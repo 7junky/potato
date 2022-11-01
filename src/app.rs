@@ -6,6 +6,7 @@ use std::sync::Arc;
 pub enum Status {
     OK,
     BadRequest,
+    NotFound,
     Internal,
 }
 
@@ -14,6 +15,7 @@ impl Status {
         match self {
             Status::OK => "200 OK",
             Status::BadRequest => "400 Bad Request",
+            Status::NotFound => "404 Not Found",
             Status::Internal => "500 Internal Server Error",
         }
     }
@@ -118,6 +120,12 @@ where
         Ok(())
     }
 
+    fn respond(stream: &mut TcpStream, response: &mut Response) -> std::io::Result<()> {
+        stream.write_all(response.data().as_bytes())?;
+        stream.flush()?;
+        Ok(())
+    }
+
     fn handle_connection<'a>(&'a self, mut stream: TcpStream) -> std::io::Result<()> {
         let buf_reader = BufReader::new(&mut stream);
         let http_header = buf_reader.lines().next().unwrap().unwrap();
@@ -125,14 +133,15 @@ where
         let handle = match self.routes.get(&http_header) {
             Some(handle) => handle.clone(),
             None => {
-                // Send 404
-                todo!();
+                let mut res = Response::default();
+                res.with_status(Status::NotFound)
+                    .with_content("Not found".to_owned());
+                return Self::respond(&mut stream, &mut res);
             }
         };
 
-        let mut response = handle(Request);
-        stream.write_all(response.data().as_bytes())?;
-        stream.flush()?;
+        let mut res = handle(Request);
+        Self::respond(&mut stream, &mut res)?;
 
         Ok(())
     }
