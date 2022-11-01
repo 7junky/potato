@@ -27,12 +27,14 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn with_status(&mut self, status: Status) {
-        self.status = status
+    pub fn with_status(&mut self, status: Status) -> &mut Self {
+        self.status = status;
+        self
     }
 
-    pub fn with_content(&mut self, content: String) {
+    pub fn with_content(&mut self, content: String) -> &mut Self {
         self.content = content;
+        self
     }
 
     pub fn data(&mut self) -> String {
@@ -42,6 +44,15 @@ impl Response {
             self.content.len(),
             self.content
         )
+    }
+}
+
+impl Default for Response {
+    fn default() -> Self {
+        Self {
+            status: Status::OK,
+            content: String::from("OK"),
+        }
     }
 }
 
@@ -130,14 +141,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::RequestMethod::*;
-    use super::{App, Request, Response, Status};
+    use super::{App, Request, Response};
 
     fn get_handle(req: Request) -> Response {
-        println!("This works!");
-        Response {
-            status: Status::OK,
-            content: "Hello".to_owned(),
-        }
+        let mut res = Response::default();
+        res.with_content("Hello!".into());
+        res
     }
 
     #[test]
