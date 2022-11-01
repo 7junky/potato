@@ -5,11 +5,17 @@ use std::sync::Arc;
 
 pub enum Status {
     OK,
+    BadRequest,
+    Internal,
 }
+
 impl Status {
-    fn to_str<'a>(&self) -> &'a str {
-        // match self
-        "200 OK"
+    fn to_str(&self) -> &str {
+        match self {
+            Status::OK => "200 OK",
+            Status::BadRequest => "400 Bad Request",
+            Status::Internal => "500 Internal Server Error",
+        }
     }
 }
 
