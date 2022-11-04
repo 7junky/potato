@@ -1,4 +1,7 @@
 pub mod app;
+pub mod request;
+pub mod response;
+pub mod status;
 
 #[cfg(test)]
 mod tests {
