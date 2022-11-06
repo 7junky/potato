@@ -59,11 +59,11 @@ where
 
     fn handle_connection<'a>(&'a self, mut stream: TcpStream) -> std::io::Result<()> {
         let buf_reader = BufReader::new(&mut stream);
-        let mut request_lines = BufReader::lines(buf_reader);
+        let request_lines = BufReader::lines(buf_reader);
 
-        let start_line = request_lines.next().unwrap().unwrap();
+        let req = Request::new(request_lines);
 
-        let handle = match self.routes.get(&start_line) {
+        let handle = match self.routes.get(&req.start_line) {
             Some(handle) => handle.clone(),
             None => {
                 let mut res = Response::default();
@@ -72,8 +72,6 @@ where
                 return Self::respond(&mut stream, &mut res);
             }
         };
-
-        let req = Request::new(request_lines, start_line);
 
         let mut res = handle(req);
         Self::respond(&mut stream, &mut res)?;
@@ -90,7 +88,7 @@ mod tests {
     fn get_handle(req: Request) -> Response {
         let mut res = Response::default();
         res.with_content(format!(
-            "You sent: {}, {} and {}",
+            "You sent: {:?}, {} and {}",
             req.method, req.target, req.http_version
         ));
         res
@@ -101,6 +99,6 @@ mod tests {
         let mut app = App::new(("0.0.0.0", 8080));
         app.add(GET, "/", get_handle);
 
-        app.serve();
+        // app.serve();
     }
 }
