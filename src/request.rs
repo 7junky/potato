@@ -17,7 +17,8 @@ type Lines<'a> = io::Lines<BufReader<&'a mut TcpStream>>;
 impl Request {
     pub fn new(mut lines: Lines) -> Self {
         let start_line = lines.next().unwrap().unwrap();
-        let (method, target, http_version) = Self::parse_start_line(&start_line);
+        let (method, target, http_version) =
+            Self::parse_start_line(&start_line);
         let method = RequestMethod::from_str(&method).unwrap();
         let headers = Self::parse_headers(lines);
 
@@ -91,23 +92,3 @@ impl FromStr for RequestMethod {
         }
     }
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::{Request, RequestMethod};
-//     use std::collections::HashMap;
-
-//     #[test]
-//     fn new_request() {
-//         let mut headers: HashMap<String, String> = HashMap::new();
-//         headers.insert("host".into(), "localhost:7357".into());
-
-//         let request = Request::new("GET / HTTP/1.1".into(), headers);
-
-//         assert_eq!(request.method, RequestMethod::GET);
-//         assert_eq!(request.target, "/".to_owned());
-//         assert_eq!(request.http_version, "HTTP/1.1".to_owned());
-
-//         assert_eq!(request.headers["host"], "localhost:7357");
-//     }
-// }

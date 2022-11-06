@@ -28,7 +28,12 @@ where
         }
     }
 
-    pub fn add(&mut self, method: RequestMethod, route: &str, handle: Handler) -> Result<(), &str> {
+    pub fn add(
+        &mut self,
+        method: RequestMethod,
+        route: &str,
+        handle: Handler,
+    ) -> Result<(), &str> {
         if !route.starts_with("/") {
             return Err("Route must start with /");
         }
@@ -55,13 +60,19 @@ where
         Ok(())
     }
 
-    fn respond(stream: &mut TcpStream, response: &mut Response) -> std::io::Result<()> {
+    fn respond(
+        stream: &mut TcpStream,
+        response: &mut Response,
+    ) -> std::io::Result<()> {
         stream.write_all(response.data().as_bytes())?;
         stream.flush()?;
         Ok(())
     }
 
-    fn handle_connection<'a>(&'a self, mut stream: TcpStream) -> std::io::Result<()> {
+    fn handle_connection<'a>(
+        &'a self,
+        mut stream: TcpStream,
+    ) -> std::io::Result<()> {
         let buf_reader = BufReader::new(&mut stream);
         let request_lines = BufReader::lines(buf_reader);
 
