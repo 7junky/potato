@@ -64,7 +64,6 @@ where
         stream: &mut TcpStream,
         response: &mut Response,
     ) -> std::io::Result<()> {
-        dbg!("called");
         stream.write_all(response.data().as_bytes())?;
         stream.flush()?;
         Ok(())
