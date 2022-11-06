@@ -103,6 +103,14 @@ mod tests {
     fn get_handle(req: Request) -> Response {
         let mut res = Response::new();
         res.with_header("Content-Type", "text/html")
+            .with_cookie("secure", "and http only", None, true, true)
+            .with_cookie(
+                "notsecure",
+                "with expiry",
+                Some("Mon, 7 Nov 2022, 07:28:00 GMT"),
+                false,
+                false,
+            )
             .with_content(format!(
                 "You sent: {:?}, {} and {}",
                 req.method, req.target, req.http_version

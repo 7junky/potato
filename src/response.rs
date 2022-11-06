@@ -6,6 +6,7 @@ use crate::status::Status;
 pub struct Response {
     status: Status,
     headers: HashMap<String, String>,
+    cookies: Vec<String>,
     content: String,
 }
 
@@ -14,6 +15,7 @@ impl Response {
         Self {
             status: Status::OK,
             headers: HashMap::default(),
+            cookies: Vec::new(),
             content: "".into(),
         }
     }
@@ -25,6 +27,33 @@ impl Response {
 
     pub fn with_header(&mut self, key: &str, value: &str) -> &mut Self {
         self.headers.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn with_cookie(
+        &mut self,
+        key: &str,
+        value: &str,
+        expires: Option<&str>,
+        secure: bool,
+        http_only: bool,
+    ) -> &mut Self {
+        let mut cookie = format!("{}={}", key, value);
+
+        if let Some(expires) = expires {
+            cookie.push_str(&format!("; Expires={}", expires));
+        };
+
+        if secure {
+            cookie.push_str("; Secure")
+        };
+
+        if http_only {
+            cookie.push_str("; HttpOnly")
+        }
+
+        self.cookies.push(cookie);
+
         self
     }
 
@@ -44,6 +73,10 @@ impl Response {
 
         for (key, value) in &self.headers {
             headers.push_str(&format!("{}: {}\r\n", key, value))
+        }
+
+        for cookie in &self.cookies {
+            headers.push_str(&format!("Set-Cookie: {}\r\n", cookie))
         }
 
         response.push_str(&headers);
