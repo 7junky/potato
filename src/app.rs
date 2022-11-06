@@ -64,6 +64,7 @@ where
         stream: &mut TcpStream,
         response: &mut Response,
     ) -> std::io::Result<()> {
+        dbg!("called");
         stream.write_all(response.data().as_bytes())?;
         stream.flush()?;
         Ok(())
@@ -81,7 +82,7 @@ where
         let handle = match self.routes.get(&req.start_line) {
             Some(handle) => handle.clone(),
             None => {
-                let mut res = Response::default();
+                let mut res = Response::new();
                 res.with_status(Status::NotFound)
                     .with_content("Not found".to_owned());
                 return Self::respond(&mut stream, &mut res);
@@ -101,19 +102,20 @@ mod tests {
     use super::{App, Request, Response};
 
     fn get_handle(req: Request) -> Response {
-        let mut res = Response::default();
-        res.with_content(format!(
-            "You sent: {:?}, {} and {}",
-            req.method, req.target, req.http_version
-        ));
+        let mut res = Response::new();
+        res.with_header("Content-Type", "text/html")
+            .with_content(format!(
+                "You sent: {:?}, {} and {}",
+                req.method, req.target, req.http_version
+            ));
         res
     }
 
     #[test]
     fn it_works() {
         let mut app = App::new(("0.0.0.0", 8080));
-        app.add(GET, "/", get_handle).unwrap();
+        app.add(GET, "/test", get_handle).unwrap();
 
-        // app.serve();
+        app.serve();
     }
 }
