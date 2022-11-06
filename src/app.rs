@@ -28,12 +28,16 @@ where
         }
     }
 
-    pub fn add(&mut self, method: RequestMethod, route: &str, handle: Handler) {
-        assert!(route.starts_with("/"));
+    pub fn add(&mut self, method: RequestMethod, route: &str, handle: Handler) -> Result<(), &str> {
+        if !route.starts_with("/") {
+            return Err("Route must start with /");
+        }
 
         let method = method.to_str();
         let route = format!("{} {} HTTP/1.1", method, route);
         self.routes.insert(route, Arc::new(handle));
+
+        Ok(())
     }
 
     pub fn serve(&self) -> std::io::Result<()> {
@@ -97,7 +101,7 @@ mod tests {
     #[test]
     fn it_works() {
         let mut app = App::new(("0.0.0.0", 8080));
-        app.add(GET, "/", get_handle);
+        app.add(GET, "/", get_handle).unwrap();
 
         // app.serve();
     }
