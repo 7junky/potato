@@ -10,6 +10,34 @@ pub struct Response {
     content: String,
 }
 
+pub struct Cookie<'a> {
+    pub key: &'a str,
+    pub value: &'a str,
+    pub expires: Option<&'a str>,
+    pub secure: bool,
+    pub http_only: bool,
+}
+
+impl<'a> Cookie<'a> {
+    fn to_string(&self) -> String {
+        let mut cookie = format!("{}={}", self.key, self.value);
+
+        if let Some(expires) = self.expires {
+            cookie.push_str(&format!("; Expires={}", expires));
+        };
+
+        if self.secure {
+            cookie.push_str("; Secure")
+        };
+
+        if self.http_only {
+            cookie.push_str("; HttpOnly")
+        }
+
+        cookie
+    }
+}
+
 impl Response {
     pub fn new() -> Self {
         Self {
@@ -30,30 +58,9 @@ impl Response {
         self
     }
 
-    pub fn with_cookie(
-        &mut self,
-        key: &str,
-        value: &str,
-        expires: Option<&str>,
-        secure: bool,
-        http_only: bool,
-    ) -> &mut Self {
-        let mut cookie = format!("{}={}", key, value);
-
-        if let Some(expires) = expires {
-            cookie.push_str(&format!("; Expires={}", expires));
-        };
-
-        if secure {
-            cookie.push_str("; Secure")
-        };
-
-        if http_only {
-            cookie.push_str("; HttpOnly")
-        }
-
+    pub fn with_cookie(&mut self, cookie: Cookie) -> &mut Self {
+        let cookie = cookie.to_string();
         self.cookies.push(cookie);
-
         self
     }
 

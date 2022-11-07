@@ -100,17 +100,25 @@ mod tests {
     use super::RequestMethod::*;
     use super::{App, Request, Response};
 
+    use crate::response::Cookie;
+
     fn get_handle(req: Request) -> Response {
         let mut res = Response::new();
         res.with_header("Content-Type", "text/html")
-            .with_cookie("secure", "and http only", None, true, true)
-            .with_cookie(
-                "notsecure",
-                "with expiry",
-                Some("Mon, 7 Nov 2022, 07:28:00 GMT"),
-                false,
-                false,
-            )
+            .with_cookie(Cookie {
+                key: "secure",
+                value: "and http only",
+                expires: None,
+                secure: true,
+                http_only: true,
+            })
+            .with_cookie(Cookie {
+                key: "notsecure",
+                value: "with expiry",
+                expires: Some("Fri, 11 Nov 2022, 07:28:00 GMT"),
+                secure: false,
+                http_only: false,
+            })
             .with_content(format!(
                 "You sent: {:?}, {} and {}",
                 req.method, req.target, req.http_version
