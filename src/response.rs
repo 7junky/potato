@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 use crate::status::Status;
@@ -13,7 +14,7 @@ pub struct Response {
 pub struct Cookie<'a> {
     pub key: &'a str,
     pub value: &'a str,
-    pub expires: Option<&'a str>,
+    pub expires: Option<DateTime<Utc>>,
     pub secure: bool,
     pub http_only: bool,
 }
@@ -23,6 +24,7 @@ impl<'a> Cookie<'a> {
         let mut cookie = format!("{}={}", self.key, self.value);
 
         if let Some(expires) = self.expires {
+            let expires = expires.to_rfc2822();
             cookie.push_str(&format!("; Expires={}", expires));
         };
 
@@ -89,7 +91,7 @@ impl Response {
         response.push_str(&headers);
         response.push_str("\r\n");
         response.push_str(&self.content);
-
+        dbg!(&response);
         response
     }
 }

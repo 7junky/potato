@@ -102,6 +102,8 @@ mod tests {
 
     use crate::response::Cookie;
 
+    use chrono::prelude::*;
+
     fn get_handle(req: Request) -> Response {
         let mut res = Response::new();
         res.with_header("Content-Type", "text/html")
@@ -115,7 +117,7 @@ mod tests {
             .with_cookie(Cookie {
                 key: "notsecure",
                 value: "with expiry",
-                expires: Some("Fri, 11 Nov 2022, 07:28:00 GMT"),
+                expires: Some(chrono::Utc.ymd(2022, 12, 1).and_hms(12, 00, 00)),
                 secure: false,
                 http_only: false,
             })
