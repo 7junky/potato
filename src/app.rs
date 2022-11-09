@@ -78,7 +78,7 @@ where
 
         let req = Request::new(request_lines);
 
-        let handle = match self.routes.get(&req.start_line) {
+        let handle = match self.routes.get(req.get_start_line()) {
             Some(handle) => handle.clone(),
             None => {
                 let mut res = Response::new();
@@ -123,7 +123,9 @@ mod tests {
             })
             .with_content(format!(
                 "You sent: {:?}, {} and {}",
-                req.method, req.target, req.http_version
+                req.get_method(),
+                req.get_target(),
+                req.get_http_version()
             ));
         res
     }

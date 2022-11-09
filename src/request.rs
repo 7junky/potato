@@ -5,11 +5,11 @@ use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Request {
-    pub start_line: String,
-    pub method: RequestMethod,
-    pub target: String,
-    pub http_version: String,
-    pub headers: HashMap<String, String>,
+    start_line: String,
+    method: RequestMethod,
+    target: String,
+    http_version: String,
+    headers: HashMap<String, String>,
 }
 
 type Lines<'a> = io::Lines<BufReader<&'a mut TcpStream>>;
@@ -57,6 +57,26 @@ impl Request {
         }
 
         header_map
+    }
+
+    pub fn get_start_line(&self) -> &String {
+        &self.start_line
+    }
+
+    pub fn get_method(&self) -> &RequestMethod {
+        &self.method
+    }
+
+    pub fn get_target(&self) -> &String {
+        &self.target
+    }
+
+    pub fn get_http_version(&self) -> &String {
+        &self.http_version
+    }
+
+    pub fn get_headers(&self) -> &HashMap<String, String> {
+        &self.headers
     }
 }
 
