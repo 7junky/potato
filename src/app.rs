@@ -1,4 +1,4 @@
-use crate::request::{Request, RequestMethod};
+use crate::request::{Method, Request};
 use crate::response::Response;
 use crate::status::Status;
 
@@ -30,7 +30,7 @@ where
 
     pub fn add(
         &mut self,
-        method: RequestMethod,
+        method: Method,
         route: &str,
         handle: Handler,
     ) -> Result<(), &str> {
@@ -97,7 +97,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::RequestMethod::*;
+    use super::Method::*;
     use super::{App, Request, Response};
 
     use crate::response::Cookie;
@@ -136,6 +136,6 @@ mod tests {
         let mut app = App::new(("0.0.0.0", 8080));
         app.add(GET, "/test", get_handle).unwrap();
 
-        app.serve();
+        app.serve().unwrap();
     }
 }
