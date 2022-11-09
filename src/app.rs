@@ -78,7 +78,7 @@ where
 
         let req = Request::new(request_lines);
 
-        let handle = match self.routes.get(req.get_start_line()) {
+        let handle = match self.routes.get(req.get_route_key()) {
             Some(handle) => handle.clone(),
             None => {
                 let mut res = Response::new();
@@ -106,6 +106,7 @@ mod tests {
 
     fn get_handle(req: Request) -> Response {
         let mut res = Response::new();
+        dbg!(req.get_params());
         res.with_header("Content-Type", "text/html")
             .with_cookie(Cookie {
                 key: "secure",

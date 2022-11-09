@@ -91,7 +91,7 @@ impl Response {
         response.push_str(&headers);
         response.push_str("\r\n");
         response.push_str(&self.content);
-        dbg!(&response);
+
         response
     }
 }

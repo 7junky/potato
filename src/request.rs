@@ -10,6 +10,8 @@ pub struct Request {
     target: String,
     http_version: String,
     headers: HashMap<String, String>,
+    params: HashMap<String, String>,
+    route_key: Option<String>,
 }
 
 type Lines<'a> = io::Lines<BufReader<&'a mut TcpStream>>;
@@ -21,6 +23,8 @@ impl Request {
             Self::parse_start_line(&start_line);
         let method = RequestMethod::from_str(&method).unwrap();
         let headers = Self::parse_headers(lines);
+        let (path, params) = Self::parse_params(&target);
+        let route_key = Self::generate_route_key(&method, path, &http_version);
 
         Self {
             start_line,
@@ -28,6 +32,8 @@ impl Request {
             target,
             http_version,
             headers,
+            params,
+            route_key,
         }
     }
 
@@ -59,6 +65,45 @@ impl Request {
         header_map
     }
 
+    fn parse_params(target: &String) -> (&str, HashMap<String, String>) {
+        let mut params = HashMap::new();
+
+        let (path, raw_params) = match target.split_once("?") {
+            Some(params) => params,
+            None => return ("", params),
+        };
+
+        for param in raw_params.rsplit("&") {
+            let (key, value) = match param.split_once("=") {
+                Some(kv) => kv,
+                None => continue,
+            };
+
+            params.insert(key.into(), value.into());
+        }
+
+        (path, params)
+    }
+
+    fn generate_route_key(
+        method: &RequestMethod,
+        path: &str,
+        http_version: &String,
+    ) -> Option<String> {
+        if path == "" {
+            return None;
+        };
+
+        Some(format!("{:?} {} {}", method, path, http_version))
+    }
+
+    pub fn get_route_key(&self) -> &String {
+        match &self.route_key {
+            Some(route_key) => route_key,
+            None => &self.start_line,
+        }
+    }
+
     pub fn get_start_line(&self) -> &String {
         &self.start_line
     }
@@ -77,6 +122,10 @@ impl Request {
 
     pub fn get_headers(&self) -> &HashMap<String, String> {
         &self.headers
+    }
+
+    pub fn get_params(&self) -> &HashMap<String, String> {
+        &self.params
     }
 }
 
