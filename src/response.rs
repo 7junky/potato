@@ -95,3 +95,42 @@ impl Response {
         response
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::{Cookie, Response};
+
+    use chrono::prelude::*;
+
+    #[test]
+    fn it_works() {
+        let expected = "HTTP/1.1 200 OK\r\n\
+Content-Length: 18\r\n\
+Content-Type: text/html\r\n\
+Set-Cookie: darkmode=true; Secure; HttpOnly\r\n\
+Set-Cookie: token=abcdefg; Expires=Thu, 01 Dec 2022 12:00:00 +0000; Secure; HttpOnly\r\n\r\n\
+<h1> Welcome </h1>";
+
+        let mut response = Response::new();
+
+        response
+            .with_header("Content-Type", "text/html")
+            .with_cookie(Cookie {
+                key: "darkmode",
+                value: "true",
+                expires: None,
+                secure: true,
+                http_only: true,
+            })
+            .with_cookie(Cookie {
+                key: "token",
+                value: "abcdefg",
+                expires: Some(chrono::Utc.ymd(2022, 12, 1).and_hms(12, 00, 00)),
+                secure: true,
+                http_only: true,
+            })
+            .with_content("<h1> Welcome </h1>".to_owned());
+
+        assert_eq!(response.data(), expected);
+    }
+}
