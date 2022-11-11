@@ -13,9 +13,6 @@ pub struct Request {
     route_key: Option<String>,
 }
 
-// type Lines<'a> = io::Lines<BufReader<impl Read>>;
-// type Lines<'a> = io::Lines<BufReader<&'a mut TcpStream>>;
-
 impl Request {
     pub fn new(mut lines: io::Lines<BufReader<impl Read>>) -> Self {
         let start_line = lines.next().unwrap().unwrap();

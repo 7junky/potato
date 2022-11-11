@@ -71,6 +71,18 @@ impl Response {
         self
     }
 
+    pub fn status(&self) -> &Status {
+        &self.status
+    }
+
+    pub fn headers(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+
+    pub fn content(&self) -> &String {
+        &self.content
+    }
+
     pub fn data(&mut self) -> String {
         let mut response = format!(
             "HTTP/1.1 {}\r\nContent-Length: {}\r\n",

@@ -9,12 +9,14 @@ use std::sync::Arc;
 
 type Handler = fn(Request) -> Response;
 
+pub type Routes = HashMap<String, Arc<Handler>>;
+
 pub struct App<T>
 where
     T: ToSocketAddrs,
 {
     addr: T,
-    routes: HashMap<String, Arc<Handler>>,
+    routes: Routes,
 }
 
 impl<T> App<T>
@@ -60,6 +62,14 @@ where
         Ok(())
     }
 
+    pub fn get_routes(&self) -> &Routes {
+        &self.routes
+    }
+
+    pub fn get_addr(&self) -> &T {
+        &self.addr
+    }
+
     fn respond(
         stream: &mut TcpStream,
         response: &mut Response,
@@ -92,50 +102,5 @@ where
         Self::respond(&mut stream, &mut res)?;
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Method::*;
-    use super::{App, Request, Response};
-
-    use crate::response::Cookie;
-
-    use chrono::prelude::*;
-
-    fn get_handle(req: Request) -> Response {
-        let mut res = Response::new();
-        dbg!(req.get_params());
-        res.with_header("Content-Type", "text/html")
-            .with_cookie(Cookie {
-                key: "secure",
-                value: "and http only",
-                expires: None,
-                secure: true,
-                http_only: true,
-            })
-            .with_cookie(Cookie {
-                key: "notsecure",
-                value: "with expiry",
-                expires: Some(chrono::Utc.ymd(2022, 12, 1).and_hms(12, 00, 00)),
-                secure: false,
-                http_only: false,
-            })
-            .with_content(format!(
-                "You sent: {:?}, {} and {}",
-                req.get_method(),
-                req.get_target(),
-                req.get_http_version()
-            ));
-        res
-    }
-
-    #[test]
-    fn it_works() {
-        let mut app = App::new(("0.0.0.0", 8080));
-        app.add(GET, "/test", get_handle).unwrap();
-
-        app.serve().unwrap();
     }
 }
