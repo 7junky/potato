@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::io::{self, BufReader, Read};
 use std::str::FromStr;
+use tokio::io::{self, AsyncRead, BufReader};
 
 #[derive(Debug)]
 pub struct Request {
@@ -14,12 +14,14 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn new(mut lines: io::Lines<BufReader<impl Read>>) -> Self {
-        let start_line = lines.next().unwrap().unwrap();
+    pub async fn new(
+        mut lines: io::Lines<BufReader<impl AsyncRead + Unpin>>,
+    ) -> Self {
+        let start_line = lines.next_line().await.unwrap().unwrap();
         let (method, target, http_version) =
             Self::parse_start_line(&start_line);
         let method = Method::from_str(&method).unwrap();
-        let headers = Self::parse_headers(lines);
+        let headers = Self::parse_headers(lines).await;
         let (path, query) = Self::parse_params(&target);
         let route_key = Self::generate_route_key(&method, path, &http_version);
 
@@ -44,13 +46,16 @@ impl Request {
         (method.into(), target.into(), http_version.into())
     }
 
-    fn parse_headers(
-        lines: io::Lines<BufReader<impl Read>>,
+    async fn parse_headers(
+        mut lines: io::Lines<BufReader<impl AsyncRead + Unpin>>,
     ) -> HashMap<String, String> {
         let mut header_map: HashMap<String, String> = HashMap::new();
 
-        for line in lines {
-            let line = line.unwrap();
+        loop {
+            let line = match lines.next_line().await.unwrap() {
+                Some(line) => line,
+                None => break,
+            };
 
             if line == "" {
                 break;
@@ -163,12 +168,12 @@ impl FromStr for Method {
 
 #[cfg(test)]
 mod test {
-    use std::io::{BufRead, BufReader};
+    use tokio::io::{AsyncBufReadExt, BufReader};
 
     use super::{Method, Request};
 
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let raw_request = r#"GET /search?q=test HTTP/2
 Host: www.bing.com
 User-Agent: curl/7.54.0
@@ -178,7 +183,7 @@ Accept: */*
         let reader = BufReader::new(raw_request.as_bytes());
         let lines = BufReader::lines(reader);
 
-        let request = Request::new(lines);
+        let request = Request::new(lines).await;
 
         assert_eq!(request.start_line, "GET /search?q=test HTTP/2".to_owned());
         assert_eq!(request.method, Method::GET);

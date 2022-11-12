@@ -1,5 +1,4 @@
-use std::io::{BufRead, BufReader};
-use std::net::ToSocketAddrs;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::app::App;
 use crate::request::Method;
@@ -7,18 +6,12 @@ use crate::request::Request;
 use crate::response::Response;
 use crate::status::Status;
 
-pub struct TestApp<T>
-where
-    T: ToSocketAddrs,
-{
-    app: App<T>,
+pub struct TestApp {
+    app: App,
 }
 
-impl<T> TestApp<T>
-where
-    T: ToSocketAddrs,
-{
-    pub fn serve(app: App<T>) -> Self {
+impl TestApp {
+    pub fn serve(app: App) -> Self {
         Self { app }
     }
 
@@ -30,7 +23,7 @@ where
         format!("GET {} HTTP/2\r\nHost: www.test.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n{:?}", path, content)
     }
 
-    pub fn request(
+    pub async fn request(
         &self,
         method: Method,
         path: &str,
@@ -44,7 +37,7 @@ where
 
         let fake_request = self.fake_request(path, content);
         let reader = BufReader::new(fake_request.as_bytes());
-        let request = Request::new(BufReader::lines(reader));
+        let request = Request::new(BufReader::lines(reader)).await;
 
         Ok(handler(request))
     }

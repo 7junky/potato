@@ -35,8 +35,8 @@ fn get(request: Request) -> Response {
     response
 }
 
-fn init() -> TestApp<&'static str> {
-    let mut app = App::new("0.0.0.0:7357");
+fn init() -> TestApp {
+    let mut app = App::new();
 
     app.add(Method::GET, "/potato", get).unwrap();
     app.add(Method::POST, "/potato", get).unwrap();
@@ -46,11 +46,11 @@ fn init() -> TestApp<&'static str> {
     TestApp::serve(app)
 }
 
-#[test]
-fn test_get() {
+#[tokio::test]
+async fn test_get() {
     let app = init();
 
-    let response = app.request(Method::GET, "/potato", "hello!").unwrap();
+    let response = app.request(Method::GET, "/potato", "hello!").await.unwrap();
 
     assert_eq!(response.status(), &Status::OK);
     assert_eq!(response.raw(), &"HTTP/1.1 200 OK\r\n\
