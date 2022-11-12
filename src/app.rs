@@ -74,7 +74,7 @@ where
         stream: &mut TcpStream,
         response: &mut Response,
     ) -> std::io::Result<()> {
-        stream.write_all(response.data().as_bytes())?;
+        stream.write_all(response.raw().as_bytes())?;
         stream.flush()?;
         Ok(())
     }
@@ -93,7 +93,8 @@ where
             None => {
                 let mut res = Response::new();
                 res.with_status(Status::NotFound)
-                    .with_content("Not found".to_owned());
+                    .with_content("Not found".to_owned())
+                    .build();
                 return Self::respond(&mut stream, &mut res);
             }
         };

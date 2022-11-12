@@ -29,7 +29,8 @@ fn get(request: Request) -> Response {
             request.method(),
             request.target(),
             request.http_version()
-        ));
+        ))
+        .build();
 
     response
 }
@@ -51,5 +52,11 @@ fn test_get() {
 
     let response = app.request(Method::GET, "/potato", "hello!").unwrap();
 
-    assert_eq!(response.status(), &Status::OK)
+    assert_eq!(response.status(), &Status::OK);
+    assert_eq!(response.raw(), &"HTTP/1.1 200 OK\r\n\
+Content-Length: 33\r\n\
+Content-Type: text/html\r\n\
+Set-Cookie: secure=and http only; Secure; HttpOnly\r\n\
+Set-Cookie: notsecure=with expiry; Expires=Thu, 01 Dec 2022 12:00:00 +0000\r\n\r\n\
+You sent: GET, /potato and HTTP/2".to_owned());
 }
