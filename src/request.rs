@@ -103,27 +103,27 @@ impl Request {
         }
     }
 
-    pub fn get_start_line(&self) -> &String {
+    pub fn start_line(&self) -> &String {
         &self.start_line
     }
 
-    pub fn get_method(&self) -> &Method {
+    pub fn method(&self) -> &Method {
         &self.method
     }
 
-    pub fn get_target(&self) -> &String {
+    pub fn target(&self) -> &String {
         &self.target
     }
 
-    pub fn get_http_version(&self) -> &String {
+    pub fn http_version(&self) -> &String {
         &self.http_version
     }
 
-    pub fn get_headers(&self) -> &HashMap<String, String> {
+    pub fn headers(&self) -> &HashMap<String, String> {
         &self.headers
     }
 
-    pub fn get_query(&self) -> &HashMap<String, String> {
+    pub fn query(&self) -> &HashMap<String, String> {
         &self.query
     }
 }

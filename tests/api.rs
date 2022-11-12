@@ -26,9 +26,9 @@ fn get(request: Request) -> Response {
         })
         .with_content(format!(
             "You sent: {:?}, {} and {}",
-            request.get_method(),
-            request.get_target(),
-            request.get_http_version()
+            request.method(),
+            request.target(),
+            request.http_version()
         ));
 
     response
