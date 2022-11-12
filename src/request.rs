@@ -9,7 +9,7 @@ pub struct Request {
     target: String,
     http_version: String,
     headers: HashMap<String, String>,
-    params: HashMap<String, String>,
+    query: HashMap<String, String>,
     route_key: Option<String>,
 }
 
@@ -20,7 +20,7 @@ impl Request {
             Self::parse_start_line(&start_line);
         let method = Method::from_str(&method).unwrap();
         let headers = Self::parse_headers(lines);
-        let (path, params) = Self::parse_params(&target);
+        let (path, query) = Self::parse_params(&target);
         let route_key = Self::generate_route_key(&method, path, &http_version);
 
         Self {
@@ -29,7 +29,7 @@ impl Request {
             target,
             http_version,
             headers,
-            params,
+            query,
             route_key,
         }
     }
@@ -123,8 +123,8 @@ impl Request {
         &self.headers
     }
 
-    pub fn get_params(&self) -> &HashMap<String, String> {
-        &self.params
+    pub fn get_query(&self) -> &HashMap<String, String> {
+        &self.query
     }
 }
 
@@ -196,7 +196,7 @@ Accept: */*
             Some(&"www.bing.com".to_owned())
         );
 
-        assert_eq!(request.params.get("q"), Some(&"test".to_owned()));
+        assert_eq!(request.query.get("q"), Some(&"test".to_owned()));
 
         assert_eq!(request.route_key, Some("GET /search HTTP/2".to_owned()));
     }
