@@ -23,7 +23,7 @@ impl Request {
         let method = Method::from_str(&method).unwrap();
         let headers = Self::parse_headers(lines).await;
         let (path, query) = Self::parse_params(&target);
-        let route_key = Self::generate_route_key(&method, path, &http_version);
+        let route_key = Self::construct_route_key(&method, path, &http_version);
 
         Self {
             start_line,
@@ -89,7 +89,7 @@ impl Request {
         (path, params)
     }
 
-    fn generate_route_key(
+    fn construct_route_key(
         method: &Method,
         path: &str,
         http_version: &String,

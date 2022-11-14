@@ -35,20 +35,30 @@ fn get(request: Request) -> Response {
     response
 }
 
-fn init() -> TestApp {
+fn delete(request: Request) -> Response {
+    let mut response = Response::new();
+
+    let id = request.query().get("id").unwrap();
+
+    response.with_header("id", id).build();
+
+    response
+}
+
+async fn init() -> TestApp {
     let mut app = App::new();
 
-    app.add(Method::GET, "/potato", get).unwrap();
-    app.add(Method::POST, "/potato", get).unwrap();
-    app.add(Method::PATCH, "/potato", get).unwrap();
-    app.add(Method::DELETE, "/potato", get).unwrap();
+    app.add(Method::GET, "/potato", get).await.unwrap();
+    app.add(Method::POST, "/potato", get).await.unwrap();
+    app.add(Method::PATCH, "/potato", get).await.unwrap();
+    app.add(Method::DELETE, "/potato", delete).await.unwrap();
 
     TestApp::serve(app)
 }
 
 #[tokio::test]
 async fn test_get() {
-    let app = init();
+    let app = init().await;
 
     let response = app.request(Method::GET, "/potato", "hello!").await.unwrap();
 
@@ -59,4 +69,17 @@ Content-Type: text/html\r\n\
 Set-Cookie: secure=and http only; Secure; HttpOnly\r\n\
 Set-Cookie: notsecure=with expiry; Expires=Thu, 01 Dec 2022 12:00:00 +0000\r\n\r\n\
 You sent: GET, /potato and HTTP/2".to_owned());
+}
+
+#[tokio::test]
+async fn test_delete() {
+    let app = init().await;
+
+    // TODO BROKEN
+    let response = app
+        .request(Method::DELETE, "/potato?id=1234", "")
+        .await
+        .unwrap();
+
+    assert_eq!(response.headers().get("id").unwrap(), "1234");
 }

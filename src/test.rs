@@ -30,7 +30,8 @@ impl TestApp {
         content: &str,
     ) -> Result<Response, Status> {
         let route_key = Self::construct_route_key(method, path);
-        let handler = match self.app.get_routes().get(&route_key) {
+        let routes = self.app.get_routes().await;
+        let handler = match routes.get(&route_key) {
             Some(h) => h,
             None => return Err(Status::NotFound),
         };

@@ -3,13 +3,15 @@ use crate::response::Response;
 use crate::status::Status;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use tokio::sync::{RwLock, RwLockReadGuard};
 
 type Handler = fn(Request) -> Response;
 
-pub type Routes = HashMap<String, Handler>;
+type RouteMap = HashMap<String, Handler>;
+pub type Routes = Arc<RwLock<RouteMap>>;
 
 pub struct App {
     routes: Routes,
@@ -18,11 +20,11 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            routes: HashMap::new(),
+            routes: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    pub fn add(
+    pub async fn add(
         &mut self,
         method: Method,
         route: &str,
@@ -34,7 +36,7 @@ impl App {
 
         let method = method.to_str();
         let route = format!("{} {} HTTP/1.1", method, route);
-        self.routes.insert(route, handle);
+        self.routes.write().await.insert(route, handle);
 
         Ok(())
     }
@@ -54,8 +56,8 @@ impl App {
         }
     }
 
-    pub fn get_routes(&self) -> &Routes {
-        &self.routes
+    pub async fn get_routes(&self) -> RwLockReadGuard<'_, RouteMap> {
+        self.routes.read().await
     }
 
     async fn respond(
@@ -76,8 +78,9 @@ impl App {
 
         let req = Request::new(request_lines).await;
 
+        let routes = routes.read().await;
         let handle = match routes.get(req.get_route_key()) {
-            Some(handle) => handle.clone(),
+            Some(handle) => handle,
             None => {
                 let mut res = Response::new();
                 res.with_status(Status::NotFound)
