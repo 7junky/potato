@@ -15,12 +15,13 @@ impl TestApp {
         Self { app }
     }
 
-    fn construct_route_key(method: Method, path: &str) -> String {
-        format!("{:?} {} HTTP/1.1", method, path)
-    }
-
-    fn fake_request(&self, path: &str, content: &str) -> String {
-        format!("GET {} HTTP/2\r\nHost: www.test.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n{:?}", path, content)
+    fn fake_request(
+        &self,
+        method: Method,
+        path: &str,
+        content: &str,
+    ) -> String {
+        format!("{:?} {} HTTP/1.1\r\nHost: www.test.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n{:?}",method,  path, content)
     }
 
     pub async fn request(
@@ -29,16 +30,16 @@ impl TestApp {
         path: &str,
         content: &str,
     ) -> Result<Response, Status> {
-        let route_key = Self::construct_route_key(method, path);
+        let fake_request = self.fake_request(method, path, content);
+        let reader = BufReader::new(fake_request.as_bytes());
+        let request = Request::new(BufReader::lines(reader)).await;
+
         let routes = self.app.get_routes().await;
-        let handler = match routes.get(&route_key) {
+        let route_key = request.get_route_key();
+        let handler = match routes.get(route_key) {
             Some(h) => h,
             None => return Err(Status::NotFound),
         };
-
-        let fake_request = self.fake_request(path, content);
-        let reader = BufReader::new(fake_request.as_bytes());
-        let request = Request::new(BufReader::lines(reader)).await;
 
         Ok(handler(request))
     }

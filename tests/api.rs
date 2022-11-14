@@ -38,7 +38,16 @@ fn get(request: Request) -> Response {
 fn delete(request: Request) -> Response {
     let mut response = Response::new();
 
-    let id = request.query().get("id").unwrap();
+    let id = match request.query().get("id") {
+        Some(id) => id,
+        None => {
+            response
+                .with_status(Status::BadRequest)
+                .with_content("You need to give an ID!".to_owned())
+                .build();
+            return response;
+        }
+    };
 
     response.with_header("id", id).build();
 
@@ -64,18 +73,17 @@ async fn test_get() {
 
     assert_eq!(response.status(), &Status::OK);
     assert_eq!(response.raw(), &"HTTP/1.1 200 OK\r\n\
-Content-Length: 33\r\n\
+Content-Length: 35\r\n\
 Content-Type: text/html\r\n\
 Set-Cookie: secure=and http only; Secure; HttpOnly\r\n\
 Set-Cookie: notsecure=with expiry; Expires=Thu, 01 Dec 2022 12:00:00 +0000\r\n\r\n\
-You sent: GET, /potato and HTTP/2".to_owned());
+You sent: GET, /potato and HTTP/1.1".to_owned());
 }
 
 #[tokio::test]
 async fn test_delete() {
     let app = init().await;
 
-    // TODO BROKEN
     let response = app
         .request(Method::DELETE, "/potato?id=1234", "")
         .await
