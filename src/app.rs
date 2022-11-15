@@ -24,21 +24,11 @@ impl App {
         }
     }
 
-    pub async fn add(
-        &mut self,
-        method: Method,
-        route: &str,
-        handle: Handler,
-    ) -> Result<(), &str> {
-        if !route.starts_with("/") {
-            return Err("Route must start with /");
-        }
+    pub async fn add(&mut self, method: Method, route: &str, handle: Handler) {
+        assert!(route.starts_with("/"));
 
-        let method = method.to_str();
-        let route = format!("{} {} HTTP/1.1", method, route);
-        self.routes.write().await.insert(route, handle);
-
-        Ok(())
+        let route_key = format!("{:?} {} HTTP/1.1", method, route);
+        self.routes.write().await.insert(route_key, handle);
     }
 
     pub async fn serve<T: ToSocketAddrs>(

@@ -57,10 +57,10 @@ fn delete(request: Request) -> Response {
 async fn init() -> TestApp {
     let mut app = App::new();
 
-    app.add(Method::GET, "/potato", get).await.unwrap();
-    app.add(Method::POST, "/potato", get).await.unwrap();
-    app.add(Method::PATCH, "/potato", get).await.unwrap();
-    app.add(Method::DELETE, "/potato", delete).await.unwrap();
+    app.add(Method::GET, "/potato", get).await;
+    app.add(Method::POST, "/potato", get).await;
+    app.add(Method::PATCH, "/potato", get).await;
+    app.add(Method::DELETE, "/potato", delete).await;
 
     TestApp::serve(app)
 }
