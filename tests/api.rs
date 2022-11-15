@@ -57,17 +57,17 @@ fn delete(request: Request) -> Response {
 async fn init() -> TestApp {
     let mut app = App::new();
 
-    app.add(Method::GET, "/potato", get).await;
-    app.add(Method::POST, "/potato", get).await;
-    app.add(Method::PATCH, "/potato", get).await;
-    app.add(Method::DELETE, "/potato", delete).await;
+    app.add(Method::GET, "/potato", get)
+        .add(Method::POST, "/potato", get)
+        .add(Method::PATCH, "/potato", get)
+        .add(Method::DELETE, "/potato", delete);
 
     TestApp::serve(app)
 }
 
 #[tokio::test]
 async fn test_get() {
-    let app = init().await;
+    let mut app = init().await;
 
     let response = app.request(Method::GET, "/potato", "hello!").await.unwrap();
 
@@ -82,7 +82,7 @@ You sent: GET, /potato and HTTP/1.1".to_owned());
 
 #[tokio::test]
 async fn test_delete() {
-    let app = init().await;
+    let mut app = init().await;
 
     let response = app
         .request(Method::DELETE, "/potato?id=1234", "")

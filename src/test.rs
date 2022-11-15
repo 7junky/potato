@@ -25,7 +25,7 @@ impl TestApp {
     }
 
     pub async fn request(
-        &self,
+        &mut self,
         method: Method,
         path: &str,
         content: &str,
@@ -34,6 +34,7 @@ impl TestApp {
         let reader = BufReader::new(fake_request.as_bytes());
         let request = Request::new(BufReader::lines(reader)).await;
 
+        self.app.build_routes().await;
         let routes = self.app.get_routes().await;
         let route_key = request.get_route_key();
         let handler = match routes.get(route_key) {
