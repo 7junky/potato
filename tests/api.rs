@@ -3,6 +3,7 @@ use chrono::prelude::*;
 use potato::app::App;
 use potato::request::{Method, Request};
 use potato::response::{Cookie, Response};
+use potato::router::Router;
 use potato::status::Status;
 use potato::test::TestApp;
 
@@ -55,12 +56,15 @@ fn delete(request: Request) -> Response {
 }
 
 async fn init() -> TestApp {
-    let mut app = App::new();
+    let mut router = Router::new();
 
-    app.add(Method::GET, "/potato", get)
+    router
+        .add(Method::GET, "/potato", get)
         .add(Method::POST, "/potato", get)
         .add(Method::PATCH, "/potato", get)
         .add(Method::DELETE, "/potato", delete);
+
+    let app = App::new(router);
 
     TestApp::serve(app)
 }

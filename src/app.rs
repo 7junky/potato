@@ -1,56 +1,26 @@
-use crate::request::{Method, Request};
+use crate::request::Request;
 use crate::response::Response;
+use crate::router::Router;
+use crate::router::Routes;
 use crate::status::Status;
 
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use tokio::sync::{RwLock, RwLockReadGuard};
-
-type Handler = fn(Request) -> Response;
-
-type RouteMap = HashMap<String, Handler>;
-pub type Routes = Arc<RwLock<RouteMap>>;
 
 pub struct App {
-    routes: Routes,
-    before_routes: Vec<(String, Handler)>,
+    pub(crate) router: Router,
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self {
-            routes: Arc::new(RwLock::new(HashMap::new())),
-            before_routes: Vec::new(),
-        }
-    }
-
-    pub fn add(
-        &mut self,
-        method: Method,
-        route: &str,
-        handle: Handler,
-    ) -> &mut Self {
-        assert!(route.starts_with("/"));
-
-        let route_key = format!("{:?} {} HTTP/1.1", method, route);
-        self.before_routes.push((route_key, handle));
-
-        self
-    }
-
-    pub(crate) async fn build_routes(&mut self) {
-        while let Some((key, handle)) = self.before_routes.pop() {
-            self.routes.write().await.insert(key.to_owned(), handle);
-        }
+    pub fn new(router: Router) -> Self {
+        Self { router }
     }
 
     pub async fn serve<T: ToSocketAddrs>(
         &mut self,
         addr: T,
     ) -> std::io::Result<()> {
-        self.build_routes().await;
+        self.router.build().await;
 
         let listener = TcpListener::bind(addr).await?;
 
@@ -58,13 +28,9 @@ impl App {
             let (socket, _) = listener.accept().await?;
             tokio::task::spawn(Self::handle_connection(
                 socket,
-                self.routes.clone(),
+                self.router.routes.clone(),
             ));
         }
-    }
-
-    pub async fn get_routes(&self) -> RwLockReadGuard<'_, RouteMap> {
-        self.routes.read().await
     }
 
     async fn respond(
