@@ -73,7 +73,8 @@ async fn init() -> TestApp {
 async fn test_get() {
     let mut app = init().await;
 
-    let response = app.request(Method::GET, "/potato", "hello!").await.unwrap();
+    // TODO: content should be Option<&str>
+    let response = app.request(Method::GET, "/potato", "").await.unwrap();
 
     assert_eq!(response.status(), &Status::OK);
     assert_eq!(response.raw(), &"HTTP/1.1 200 OK\r\n\
@@ -82,6 +83,19 @@ Content-Type: text/html\r\n\
 Set-Cookie: secure=and http only; Secure; HttpOnly\r\n\
 Set-Cookie: notsecure=with expiry; Expires=Thu, 01 Dec 2022 12:00:00 +0000\r\n\r\n\
 You sent: GET, /potato and HTTP/1.1".to_owned());
+}
+
+#[tokio::test]
+async fn test_post() {
+    let mut app = init().await;
+
+    let json = "\
+{
+    \"name\": \"bob\",
+    \"age\": 22
+}";
+
+    let response = app.request(Method::POST, "/potato", json).await.unwrap();
 }
 
 #[tokio::test]

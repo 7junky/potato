@@ -11,18 +11,27 @@ pub struct Request {
     headers: HashMap<String, String>,
     query: HashMap<String, String>,
     route_key: Option<String>,
+    content: Option<String>,
 }
 
 impl Request {
     pub async fn new(
         mut lines: io::Lines<BufReader<impl AsyncRead + Unpin>>,
     ) -> Self {
+        // The start line holds the method, path, params, and http_version:
         let start_line = lines.next_line().await.unwrap().unwrap();
         let (method, target, http_version) =
             Self::parse_start_line(&start_line);
-        let method = Method::from_str(&method).unwrap();
-        let headers = Self::parse_headers(lines).await;
         let (path, query) = Self::parse_params(&target);
+        let method = Method::from_str(&method).unwrap();
+
+        // Parse headers into a map:
+        let headers = Self::parse_headers(&mut lines).await;
+
+        // Parse contents:
+        let content = Self::parse_content(&mut lines).await;
+
+        // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(&method, path, &http_version);
 
         Self {
@@ -33,6 +42,7 @@ impl Request {
             headers,
             query,
             route_key,
+            content,
         }
     }
 
@@ -47,7 +57,7 @@ impl Request {
     }
 
     async fn parse_headers(
-        mut lines: io::Lines<BufReader<impl AsyncRead + Unpin>>,
+        lines: &mut io::Lines<BufReader<impl AsyncRead + Unpin>>,
     ) -> HashMap<String, String> {
         let mut header_map: HashMap<String, String> = HashMap::new();
 
@@ -61,12 +71,38 @@ impl Request {
                 break;
             }
 
-            let (key, value) = line.split_once(": ").unwrap();
+            let (key, value) = match line.split_once(": ") {
+                Some((k, v)) => (k, v),
+                None => continue,
+            };
 
             header_map.insert(key.into(), value.into());
         }
 
         header_map
+    }
+
+    async fn parse_content(
+        lines: &mut io::Lines<BufReader<impl AsyncRead + Unpin>>,
+    ) -> Option<String> {
+        let mut content = String::new();
+        loop {
+            let line = match lines.next_line().await.unwrap() {
+                Some(line) => line,
+                None => break,
+            };
+
+            if line == "" || line == "\"\"" {
+                continue;
+            }
+
+            content.push_str(&line);
+        }
+
+        match content.len() {
+            0 => None,
+            _ => Some(content.trim_end().into()),
+        }
     }
 
     fn parse_params(target: &String) -> (&str, HashMap<String, String>) {
@@ -131,6 +167,10 @@ impl Request {
     pub fn query(&self) -> &HashMap<String, String> {
         &self.query
     }
+
+    pub fn content(&self) -> &Option<String> {
+        &self.content
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -178,6 +218,8 @@ mod test {
 Host: www.bing.com
 User-Agent: curl/7.54.0
 Accept: */*
+
+Hello
 "#;
 
         let reader = BufReader::new(raw_request.as_bytes());
@@ -204,5 +246,8 @@ Accept: */*
         assert_eq!(request.query.get("q"), Some(&"test".to_owned()));
 
         assert_eq!(request.route_key, Some("GET /search HTTP/2".to_owned()));
+
+        assert!(request.content.is_some());
+        assert_eq!(request.content.unwrap(), "Hello");
     }
 }

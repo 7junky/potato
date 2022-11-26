@@ -21,7 +21,7 @@ impl TestApp {
         path: &str,
         content: &str,
     ) -> String {
-        format!("{:?} {} HTTP/1.1\r\nHost: www.test.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n{:?}",method,  path, content)
+        format!("{:?} {} HTTP/1.1\r\nHost: www.test.com\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\n{:?}", method, path, content)
     }
 
     pub async fn request(
@@ -39,7 +39,7 @@ impl TestApp {
         let route_key = request.get_route_key();
         let handler = match routes.get(route_key) {
             Some(h) => h,
-            None => return Err(Status::NotFound),
+            None => Err(Status::NotFound)?,
         };
 
         Ok(handler(request))
