@@ -99,9 +99,10 @@ impl Request {
             content.push_str(&line);
         }
 
+        let content = content.trim_end();
         match content.len() {
             0 => None,
-            _ => Some(content.trim_end().into()),
+            _ => Some(content.into()),
         }
     }
 
