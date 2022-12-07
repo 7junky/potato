@@ -19,8 +19,7 @@ impl Request {
     where
         R: AsyncRead + Unpin,
     {
-        let buf_reader = BufReader::new(r);
-        let mut lines = BufReader::lines(buf_reader);
+        let mut lines = BufReader::new(r).lines();
 
         // The start line holds the method, path, params, and http_version:
         let start_line = lines.next_line().await.unwrap().unwrap();
