@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use tokio::io::{self, AsyncRead, BufReader};
+use tokio::io::{self, AsyncBufReadExt, AsyncRead, BufReader};
 
 #[derive(Debug)]
 pub struct Request {
@@ -15,9 +15,13 @@ pub struct Request {
 }
 
 impl Request {
-    pub async fn new(
-        mut lines: io::Lines<BufReader<impl AsyncRead + Unpin>>,
-    ) -> Self {
+    pub async fn new<R>(r: &mut R) -> Self
+    where
+        R: AsyncRead + Unpin,
+    {
+        let buf_reader = BufReader::new(r);
+        let mut lines = BufReader::lines(buf_reader);
+
         // The start line holds the method, path, params, and http_version:
         let start_line = lines.next_line().await.unwrap().unwrap();
         let (method, target, http_version) =
@@ -209,8 +213,6 @@ impl FromStr for Method {
 
 #[cfg(test)]
 mod test {
-    use tokio::io::{AsyncBufReadExt, BufReader};
-
     use super::{Method, Request};
 
     #[tokio::test]
@@ -223,10 +225,7 @@ Accept: */*
 Hello
 "#;
 
-        let reader = BufReader::new(raw_request.as_bytes());
-        let lines = BufReader::lines(reader);
-
-        let request = Request::new(lines).await;
+        let request = Request::new(&mut raw_request.as_bytes()).await;
 
         assert_eq!(request.start_line, "GET /search?q=test HTTP/2".to_owned());
         assert_eq!(request.method, Method::GET);

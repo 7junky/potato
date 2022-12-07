@@ -95,7 +95,7 @@ async fn test_post() {
     \"age\": 22
 }";
 
-    let response = app.request(Method::POST, "/potato", json).await.unwrap();
+    let _response = app.request(Method::POST, "/potato", json).await.unwrap();
 }
 
 #[tokio::test]

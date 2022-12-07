@@ -1,5 +1,3 @@
-use tokio::io::{AsyncBufReadExt, BufReader};
-
 use crate::app::App;
 use crate::request::Method;
 use crate::request::Request;
@@ -31,8 +29,7 @@ impl TestApp {
         content: &str,
     ) -> Result<Response, Status> {
         let fake_request = self.fake_request(method, path, content);
-        let reader = BufReader::new(fake_request.as_bytes());
-        let request = Request::new(BufReader::lines(reader)).await;
+        let request = Request::new(&mut fake_request.as_bytes()).await;
 
         self.app.router.build().await;
         let routes = self.app.router.get_routes().await;

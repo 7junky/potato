@@ -4,7 +4,7 @@ use crate::router::Router;
 use crate::router::Routes;
 use crate::status::Status;
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 pub struct App {
@@ -46,10 +46,7 @@ impl App {
         mut stream: TcpStream,
         routes: Routes,
     ) -> tokio::io::Result<()> {
-        let buf_reader = BufReader::new(&mut stream);
-        let request_lines = BufReader::lines(buf_reader);
-
-        let req = Request::new(request_lines).await;
+        let req = Request::new(&mut stream).await;
 
         let routes = routes.read().await;
         let handle = match routes.get(req.get_route_key()) {
