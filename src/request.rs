@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
-use tokio::io::{self, AsyncBufReadExt, AsyncRead, BufReader};
+use tokio::io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
 
 #[derive(Debug)]
 pub struct Request {
@@ -31,8 +31,21 @@ impl Request {
         // Parse headers into a map:
         let headers = Self::parse_headers(&mut lines).await;
 
-        // Parse contents:
-        let content = Self::parse_content(&mut lines).await;
+        // If a Content-Length header has been sent, read the content:
+        let mut data = String::new();
+        if let Some(_) = headers.get("Content-Length") {
+            let mut buf: Vec<u8> = Vec::new();
+
+            let mut reader = lines.into_inner();
+            reader.read_buf(&mut buf).await.unwrap();
+
+            data = std::str::from_utf8(&buf).unwrap().to_owned();
+        };
+
+        let content = match data.len() {
+            0 => None,
+            _ => Some(data),
+        };
 
         // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(&method, path, &http_version);
@@ -64,12 +77,7 @@ impl Request {
     ) -> HashMap<String, String> {
         let mut header_map: HashMap<String, String> = HashMap::new();
 
-        loop {
-            let line = match lines.next_line().await.unwrap() {
-                Some(line) => line,
-                None => break,
-            };
-
+        while let Some(line) = lines.next_line().await.unwrap() {
             if line == "" {
                 break;
             }
@@ -83,30 +91,6 @@ impl Request {
         }
 
         header_map
-    }
-
-    async fn parse_content(
-        lines: &mut io::Lines<BufReader<impl AsyncRead + Unpin>>,
-    ) -> Option<String> {
-        let mut content = String::new();
-        loop {
-            let line = match lines.next_line().await.unwrap() {
-                Some(line) => line,
-                None => break,
-            };
-
-            if line == "" || line == "\"\"" {
-                continue;
-            }
-
-            content.push_str(&line);
-        }
-
-        let content = content.trim_end();
-        match content.len() {
-            0 => None,
-            _ => Some(content.into()),
-        }
     }
 
     fn parse_params(target: &String) -> (&str, HashMap<String, String>) {
@@ -216,13 +200,7 @@ mod test {
 
     #[tokio::test]
     async fn it_works() {
-        let raw_request = r#"GET /search?q=test HTTP/2
-Host: www.bing.com
-User-Agent: curl/7.54.0
-Accept: */*
-
-Hello
-"#;
+        let raw_request = "GET /search?q=test HTTP/2\r\nHost: www.bing.com\r\nContent-Length: 5\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\nHello";
 
         let request = Request::new(&mut raw_request.as_bytes()).await;
 
@@ -231,7 +209,7 @@ Hello
         assert_eq!(request.target, "/search?q=test".to_owned());
         assert_eq!(request.http_version, "HTTP/2".to_owned());
 
-        assert_eq!(request.headers.len(), 3);
+        assert_eq!(request.headers.len(), 4);
         assert_eq!(
             request.headers.get("User-Agent"),
             Some(&"curl/7.54.0".to_owned())
