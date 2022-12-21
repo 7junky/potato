@@ -26,19 +26,17 @@ pub fn get_potato(request: Request) -> Response {
         None => {
             response
                 .with_status(Status::BadRequest)
-                .with_content("You must provide an ID".to_owned())
-                .build();
+                .with_content("You must provide an ID".to_owned());
 
             return response;
         }
     };
 
-    let potato = Potato::get_by_id(id);
+    let potato = Potato::from_id(id);
 
     response
         .with_header("Content-Type", "application/json")
-        .with_content(potato.to_json())
-        .build();
+        .with_content(potato.to_json());
 
     response
 }
