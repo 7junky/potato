@@ -30,8 +30,7 @@ fn get(request: Request) -> Response {
             request.method(),
             request.target(),
             request.http_version()
-        ))
-        .build();
+        ));
 
     response
 }
@@ -44,13 +43,12 @@ fn delete(request: Request) -> Response {
         None => {
             response
                 .with_status(Status::BadRequest)
-                .with_content("You need to give an ID!".to_owned())
-                .build();
+                .with_content("You need to give an ID!".to_owned());
             return response;
         }
     };
 
-    response.with_header("id", id).build();
+    response.with_header("id", id);
 
     response
 }
@@ -77,7 +75,7 @@ async fn test_get() {
     let response = app.request(Method::GET, "/potato", "").await.unwrap();
 
     assert_eq!(response.status(), &Status::OK);
-    assert_eq!(response.raw(), &"HTTP/1.1 200 OK\r\n\
+    assert_eq!(response.to_string(), "HTTP/1.1 200 OK\r\n\
 Content-Length: 35\r\n\
 Content-Type: text/html\r\n\
 Set-Cookie: secure=and http only; Secure; HttpOnly\r\n\

@@ -9,7 +9,6 @@ pub struct Response {
     headers: HashMap<String, String>,
     cookies: Vec<String>,
     content: String,
-    raw: String,
 }
 
 pub struct Cookie<'a> {
@@ -48,7 +47,6 @@ impl Response {
             headers: HashMap::default(),
             cookies: Vec::new(),
             content: "".into(),
-            raw: "HTTP/1.1 200 OK\r\n".to_owned(),
         }
     }
 
@@ -89,11 +87,7 @@ impl Response {
         &self.content
     }
 
-    pub fn raw(&self) -> &String {
-        &self.raw
-    }
-
-    pub fn build(&mut self) {
+    pub fn to_string(&self) -> String {
         let mut raw = format!(
             "HTTP/1.1 {}\r\nContent-Length: {}\r\n",
             self.status.to_str(),
@@ -114,7 +108,7 @@ impl Response {
         raw.push_str("\r\n");
         raw.push_str(&self.content);
 
-        self.raw = raw;
+        raw
     }
 }
 
@@ -151,9 +145,8 @@ Set-Cookie: token=abcdefg; Expires=Thu, 01 Dec 2022 12:00:00 +0000; Secure; Http
                 secure: true,
                 http_only: true,
             })
-            .with_content("<h1> Welcome </h1>".to_owned())
-            .build();
+            .with_content("<h1> Welcome </h1>".to_owned());
 
-        assert_eq!(response.raw(), expected);
+        assert_eq!(response.to_string(), expected);
     }
 }

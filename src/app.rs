@@ -37,7 +37,7 @@ impl App {
         stream: &mut TcpStream,
         response: &mut Response,
     ) -> std::io::Result<()> {
-        stream.write_all(response.raw().as_bytes()).await?;
+        stream.write_all(response.to_string().as_bytes()).await?;
         stream.flush().await?;
         Ok(())
     }
@@ -54,8 +54,7 @@ impl App {
             None => {
                 let mut res = Response::new();
                 res.with_status(Status::NotFound)
-                    .with_content("Not found".to_owned())
-                    .build();
+                    .with_content("Not found".to_owned());
                 return Self::respond(&mut stream, &mut res).await;
             }
         };
