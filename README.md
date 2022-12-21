@@ -14,7 +14,9 @@ async fn main() {
 
     let mut app = App::new(router);
 
-    app.serve("127.0.0.1:8080").await.unwrap();
+    if let Err(e) = app.serve("0.0.0.0:8080").await {
+        eprintln!("{}", e)
+    }
 }
 
 
