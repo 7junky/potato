@@ -4,7 +4,7 @@ Potato is a simple HTTP framework for rust.
 
 ## Example
 ```rust
-use potato::{app::App, request::Method, router::Router};
+use potato::{App, Method, Router, Request, Response, Status};
 
 #[tokio::main]
 async fn main() {
