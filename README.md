@@ -1,6 +1,6 @@
 # potato
 
-Potato is a simple HTTP framework written in rust.
+Potato is a simple HTTP framework written for rust.
 
 ## Example
 ```rust
