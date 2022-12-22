@@ -29,7 +29,7 @@ fn get(request: Request) -> Response {
             "You sent: {:?}, {} and {}",
             request.method(),
             request.target(),
-            request.http_version()
+            request.version()
         ));
 
     response

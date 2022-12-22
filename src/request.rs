@@ -3,12 +3,15 @@ use std::str::FromStr;
 use tokio::io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
 
 #[derive(Debug)]
-pub struct Request {
-    start_line: StartLine,
-    headers: HashMap<String, String>,
-    query: HashMap<String, String>,
-    route_key: Option<String>,
-    content: Option<String>,
+pub enum ParseError {
+    NoStartLine,
+    NoMethod,
+    NoTarget,
+    NoVersion,
+    InvalidMethod,
+    InvalidContentLength,
+    UnexpectedEof,
+    ReadError,
 }
 
 #[derive(Debug)]
@@ -17,6 +20,37 @@ struct StartLine {
     method: Method,
     target: String,
     version: String,
+}
+
+#[derive(Debug)]
+struct PathAndQuery {
+    path: String,
+    query: HashMap<String, String>,
+}
+
+impl PathAndQuery {
+    pub fn from_target(target: &str) -> Self {
+        let mut query = HashMap::new();
+
+        let (path, raw_query) = match target.split_once("?") {
+            Some(params) => params,
+            None => (target, ""),
+        };
+
+        for q in raw_query.rsplit("&") {
+            let (key, value) = match q.split_once("=") {
+                Some(kv) => kv,
+                None => continue,
+            };
+
+            query.insert(key.into(), value.into());
+        }
+
+        Self {
+            path: path.to_owned(),
+            query,
+        }
+    }
 }
 
 impl StartLine {
@@ -48,15 +82,12 @@ impl StartLine {
 }
 
 #[derive(Debug)]
-pub enum ParseError {
-    NoStartLine,
-    NoMethod,
-    NoTarget,
-    NoVersion,
-    InvalidMethod,
-    InvalidContentLength,
-    UnexpectedEof,
-    ReadError,
+pub struct Request {
+    start_line: StartLine,
+    path_and_query: PathAndQuery,
+    headers: HashMap<String, String>,
+    route_key: Option<String>,
+    content: Option<String>,
 }
 
 impl Request {
@@ -73,7 +104,7 @@ impl Request {
         };
 
         let start_line = StartLine::from_request(&start_line)?;
-        let (path, query) = Self::parse_params(&start_line.target);
+        dbg!(&start_line);
 
         // Parse headers into a map:
         let headers = Self::parse_headers(&mut lines).await;
@@ -102,17 +133,19 @@ impl Request {
             _ => Some(data),
         };
 
+        let path_and_query = PathAndQuery::from_target(&start_line.target);
+
         // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(
             &start_line.method,
-            path,
+            &path_and_query.path,
             &start_line.version,
         );
 
         Ok(Self {
             start_line,
+            path_and_query,
             headers,
-            query,
             route_key,
             content,
         })
@@ -137,26 +170,6 @@ impl Request {
         }
 
         header_map
-    }
-
-    fn parse_params(target: &String) -> (&str, HashMap<String, String>) {
-        let mut params = HashMap::new();
-
-        let (path, raw_params) = match target.split_once("?") {
-            Some(params) => params,
-            None => return ("", params),
-        };
-
-        for param in raw_params.rsplit("&") {
-            let (key, value) = match param.split_once("=") {
-                Some(kv) => kv,
-                None => continue,
-            };
-
-            params.insert(key.into(), value.into());
-        }
-
-        (path, params)
     }
 
     fn construct_route_key(
@@ -190,7 +203,7 @@ impl Request {
         &self.start_line.target
     }
 
-    pub fn http_version(&self) -> &String {
+    pub fn version(&self) -> &String {
         &self.start_line.version
     }
 
@@ -199,7 +212,7 @@ impl Request {
     }
 
     pub fn query(&self) -> &HashMap<String, String> {
-        &self.query
+        &self.path_and_query.query
     }
 
     pub fn content(&self) -> &Option<String> {
@@ -271,7 +284,10 @@ mod test {
             Some(&"www.bing.com".to_owned())
         );
 
-        assert_eq!(request.query.get("q"), Some(&"test".to_owned()));
+        assert_eq!(
+            request.path_and_query.query.get("q"),
+            Some(&"test".to_owned())
+        );
 
         assert_eq!(request.route_key, Some("GET /search HTTP/2".to_owned()));
 
