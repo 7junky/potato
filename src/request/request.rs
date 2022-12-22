@@ -1,5 +1,7 @@
+use super::{
+    method::Method, path_and_query::PathAndQuery, start_line::StartLine,
+};
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio::io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
 
 #[derive(Debug)]
@@ -12,73 +14,6 @@ pub enum ParseError {
     InvalidContentLength,
     UnexpectedEof,
     ReadError,
-}
-
-#[derive(Debug)]
-struct StartLine {
-    line: String,
-    method: Method,
-    target: String,
-    version: String,
-}
-
-#[derive(Debug)]
-struct PathAndQuery {
-    path: String,
-    query: HashMap<String, String>,
-}
-
-impl PathAndQuery {
-    pub fn from_target(target: &str) -> Self {
-        let mut query = HashMap::new();
-
-        let (path, raw_query) = match target.split_once("?") {
-            Some(params) => params,
-            None => (target, ""),
-        };
-
-        for q in raw_query.rsplit("&") {
-            let (key, value) = match q.split_once("=") {
-                Some(kv) => kv,
-                None => continue,
-            };
-
-            query.insert(key.into(), value.into());
-        }
-
-        Self {
-            path: path.to_owned(),
-            query,
-        }
-    }
-}
-
-impl StartLine {
-    pub fn from_request(line: &str) -> Result<Self, ParseError> {
-        let mut line_iter = line.split_whitespace();
-
-        let method = match line_iter.next() {
-            Some(m) => Method::from_str(m)?,
-            None => Err(ParseError::NoMethod)?,
-        };
-
-        let target = match line_iter.next() {
-            Some(m) => m.to_owned(),
-            None => Err(ParseError::NoTarget)?,
-        };
-
-        let version = match line_iter.next() {
-            Some(m) => m.to_owned(),
-            None => Err(ParseError::NoVersion)?,
-        };
-
-        Ok(Self {
-            line: line.to_owned(),
-            method,
-            target,
-            version,
-        })
-    }
 }
 
 #[derive(Debug)]
@@ -217,39 +152,6 @@ impl Request {
 
     pub fn content(&self) -> &Option<String> {
         &self.content
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Method {
-    GET,
-    POST,
-    PATCH,
-    DELETE,
-}
-
-impl Method {
-    pub fn to_str(&self) -> &str {
-        match self {
-            Method::GET => "GET",
-            Method::POST => "POST",
-            Method::PATCH => "PATCH",
-            Method::DELETE => "DELETE",
-        }
-    }
-}
-
-impl FromStr for Method {
-    type Err = ParseError;
-
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        match input {
-            "GET" => Ok(Method::GET),
-            "POST" => Ok(Method::POST),
-            "PATCH" => Ok(Method::PATCH),
-            "DELETE" => Ok(Method::DELETE),
-            _ => Err(ParseError::InvalidMethod),
-        }
     }
 }
 
