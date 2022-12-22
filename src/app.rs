@@ -46,13 +46,22 @@ impl App {
         mut stream: TcpStream,
         routes: Routes,
     ) -> tokio::io::Result<()> {
-        let req = Request::new(&mut stream).await;
+        let mut res = Response::new();
+
+        let req = match Request::from_connection(&mut stream).await {
+            Ok(r) => r,
+            Err(e) => {
+                dbg!(e);
+                res.with_status(Status::BadRequest)
+                    .with_content("Bad request".to_owned());
+                return Self::respond(&mut stream, &mut res).await;
+            }
+        };
 
         let routes = routes.read().await;
         let handle = match routes.get(req.get_route_key()) {
             Some(handle) => handle,
             None => {
-                let mut res = Response::new();
                 res.with_status(Status::NotFound)
                     .with_content("Not found".to_owned());
                 return Self::respond(&mut stream, &mut res).await;

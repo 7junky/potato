@@ -29,7 +29,9 @@ impl TestApp {
         content: &str,
     ) -> Result<Response, Status> {
         let fake_request = self.fake_request(method, path, content);
-        let request = Request::new(&mut fake_request.as_bytes()).await;
+        let request = Request::from_connection(&mut fake_request.as_bytes())
+            .await
+            .unwrap();
 
         self.app.router.build().await;
         let routes = self.app.router.get_routes().await;

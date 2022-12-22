@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::str::FromStr;
+use std::{collections::HashMap, io::ErrorKind};
 use tokio::io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
 
 #[derive(Debug)]
@@ -14,32 +14,57 @@ pub struct Request {
     content: Option<String>,
 }
 
+#[derive(Debug)]
+pub enum ParseError {
+    NoStartLine,
+    NoMethod,
+    NoTarget,
+    NoVersion,
+    InvalidMethod,
+    InvalidContentLength,
+    UnexpectedEof,
+    ReadError,
+}
+
 impl Request {
-    pub async fn new<R>(r: &mut R) -> Self
+    pub async fn from_connection<R>(r: &mut R) -> Result<Self, ParseError>
     where
         R: AsyncRead + Unpin,
     {
         let mut lines = BufReader::new(r).lines();
 
         // The start line holds the method, path, params, and http_version:
-        let start_line = lines.next_line().await.unwrap().unwrap();
+        let start_line = match lines.next_line().await.unwrap() {
+            Some(l) => l,
+            None => Err(ParseError::NoStartLine)?,
+        };
+
         let (method, target, http_version) =
-            Self::parse_start_line(&start_line);
+            Self::parse_start_line(&start_line)?;
         let (path, query) = Self::parse_params(&target);
-        let method = Method::from_str(&method).unwrap();
+        let method =
+            Method::from_str(&method).map_err(|_| ParseError::InvalidMethod)?;
 
         // Parse headers into a map:
         let headers = Self::parse_headers(&mut lines).await;
 
         // If a Content-Length header has been sent, read the content:
         let mut data = String::new();
-        if let Some(_) = headers.get("Content-Length") {
-            let mut buf: Vec<u8> = Vec::new();
+        if let Some(length) = headers.get("Content-Length") {
+            let length: usize = length
+                .parse()
+                .map_err(|_| ParseError::InvalidContentLength)?;
+            let mut buf: Vec<u8> = vec![0; length];
 
             let mut reader = lines.into_inner();
-            reader.read_buf(&mut buf).await.unwrap();
+            reader
+                .read_exact(&mut buf)
+                .await
+                .map_err(|_| ParseError::ReadError)?;
 
-            data = std::str::from_utf8(&buf).unwrap().to_owned();
+            data = std::str::from_utf8(&buf)
+                .map(|s| s.to_owned())
+                .map_err(|_| ParseError::ReadError)?
         };
 
         let content = match data.len() {
@@ -50,7 +75,7 @@ impl Request {
         // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(&method, path, &http_version);
 
-        Self {
+        Ok(Self {
             start_line,
             method,
             target,
@@ -59,17 +84,30 @@ impl Request {
             query,
             route_key,
             content,
-        }
+        })
     }
 
-    fn parse_start_line(start_line: &String) -> (String, String, String) {
+    fn parse_start_line(
+        start_line: &String,
+    ) -> Result<(String, String, String), ParseError> {
         let mut start_line_iter = start_line.split_whitespace();
 
-        let method = start_line_iter.next().unwrap();
-        let target = start_line_iter.next().unwrap();
-        let http_version = start_line_iter.next().unwrap();
+        let method = match start_line_iter.next() {
+            Some(m) => m,
+            None => Err(ParseError::NoMethod)?,
+        };
 
-        (method.into(), target.into(), http_version.into())
+        let target = match start_line_iter.next() {
+            Some(m) => m,
+            None => Err(ParseError::NoTarget)?,
+        };
+
+        let http_version = match start_line_iter.next() {
+            Some(m) => m,
+            None => Err(ParseError::NoVersion)?,
+        };
+
+        Ok((method.into(), target.into(), http_version.into()))
     }
 
     async fn parse_headers(
@@ -202,7 +240,9 @@ mod test {
     async fn it_works() {
         let raw_request = "GET /search?q=test HTTP/2\r\nHost: www.bing.com\r\nContent-Length: 5\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\nHello";
 
-        let request = Request::new(&mut raw_request.as_bytes()).await;
+        let request = Request::from_connection(&mut raw_request.as_bytes())
+            .await
+            .unwrap();
 
         assert_eq!(request.start_line, "GET /search?q=test HTTP/2".to_owned());
         assert_eq!(request.method, Method::GET);
