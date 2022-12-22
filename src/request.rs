@@ -1,17 +1,50 @@
+use std::collections::HashMap;
 use std::str::FromStr;
-use std::{collections::HashMap, io::ErrorKind};
 use tokio::io::{self, AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader};
 
 #[derive(Debug)]
 pub struct Request {
-    start_line: String,
-    method: Method,
-    target: String,
-    http_version: String,
+    start_line: StartLine,
     headers: HashMap<String, String>,
     query: HashMap<String, String>,
     route_key: Option<String>,
     content: Option<String>,
+}
+
+#[derive(Debug)]
+struct StartLine {
+    line: String,
+    method: Method,
+    target: String,
+    version: String,
+}
+
+impl StartLine {
+    pub fn from_request(line: &str) -> Result<Self, ParseError> {
+        let mut line_iter = line.split_whitespace();
+
+        let method = match line_iter.next() {
+            Some(m) => Method::from_str(m)?,
+            None => Err(ParseError::NoMethod)?,
+        };
+
+        let target = match line_iter.next() {
+            Some(m) => m.to_owned(),
+            None => Err(ParseError::NoTarget)?,
+        };
+
+        let version = match line_iter.next() {
+            Some(m) => m.to_owned(),
+            None => Err(ParseError::NoVersion)?,
+        };
+
+        Ok(Self {
+            line: line.to_owned(),
+            method,
+            target,
+            version,
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -39,11 +72,8 @@ impl Request {
             None => Err(ParseError::NoStartLine)?,
         };
 
-        let (method, target, http_version) =
-            Self::parse_start_line(&start_line)?;
-        let (path, query) = Self::parse_params(&target);
-        let method =
-            Method::from_str(&method).map_err(|_| ParseError::InvalidMethod)?;
+        let start_line = StartLine::from_request(&start_line)?;
+        let (path, query) = Self::parse_params(&start_line.target);
 
         // Parse headers into a map:
         let headers = Self::parse_headers(&mut lines).await;
@@ -73,41 +103,19 @@ impl Request {
         };
 
         // Construct a key that can be used to locate the handler in Router:
-        let route_key = Self::construct_route_key(&method, path, &http_version);
+        let route_key = Self::construct_route_key(
+            &start_line.method,
+            path,
+            &start_line.version,
+        );
 
         Ok(Self {
             start_line,
-            method,
-            target,
-            http_version,
             headers,
             query,
             route_key,
             content,
         })
-    }
-
-    fn parse_start_line(
-        start_line: &String,
-    ) -> Result<(String, String, String), ParseError> {
-        let mut start_line_iter = start_line.split_whitespace();
-
-        let method = match start_line_iter.next() {
-            Some(m) => m,
-            None => Err(ParseError::NoMethod)?,
-        };
-
-        let target = match start_line_iter.next() {
-            Some(m) => m,
-            None => Err(ParseError::NoTarget)?,
-        };
-
-        let http_version = match start_line_iter.next() {
-            Some(m) => m,
-            None => Err(ParseError::NoVersion)?,
-        };
-
-        Ok((method.into(), target.into(), http_version.into()))
     }
 
     async fn parse_headers(
@@ -154,36 +162,36 @@ impl Request {
     fn construct_route_key(
         method: &Method,
         path: &str,
-        http_version: &String,
+        version: &String,
     ) -> Option<String> {
         if path == "" {
             return None;
         };
 
-        Some(format!("{:?} {} {}", method, path, http_version))
+        Some(format!("{:?} {} {}", method, path, version))
     }
 
     pub fn get_route_key(&self) -> &String {
         match &self.route_key {
             Some(route_key) => route_key,
-            None => &self.start_line,
+            None => &self.start_line.line,
         }
     }
 
     pub fn start_line(&self) -> &String {
-        &self.start_line
+        &self.start_line.line
     }
 
     pub fn method(&self) -> &Method {
-        &self.method
+        &self.start_line.method
     }
 
     pub fn target(&self) -> &String {
-        &self.target
+        &self.start_line.target
     }
 
     pub fn http_version(&self) -> &String {
-        &self.http_version
+        &self.start_line.version
     }
 
     pub fn headers(&self) -> &HashMap<String, String> {
@@ -219,7 +227,7 @@ impl Method {
 }
 
 impl FromStr for Method {
-    type Err = ();
+    type Err = ParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match input {
@@ -227,7 +235,7 @@ impl FromStr for Method {
             "POST" => Ok(Method::POST),
             "PATCH" => Ok(Method::PATCH),
             "DELETE" => Ok(Method::DELETE),
-            _ => Err(()),
+            _ => Err(ParseError::InvalidMethod),
         }
     }
 }
@@ -244,10 +252,13 @@ mod test {
             .await
             .unwrap();
 
-        assert_eq!(request.start_line, "GET /search?q=test HTTP/2".to_owned());
-        assert_eq!(request.method, Method::GET);
-        assert_eq!(request.target, "/search?q=test".to_owned());
-        assert_eq!(request.http_version, "HTTP/2".to_owned());
+        assert_eq!(
+            request.start_line.line,
+            "GET /search?q=test HTTP/2".to_owned()
+        );
+        assert_eq!(request.start_line.method, Method::GET);
+        assert_eq!(request.start_line.target, "/search?q=test".to_owned());
+        assert_eq!(request.start_line.version, "HTTP/2".to_owned());
 
         assert_eq!(request.headers.len(), 4);
         assert_eq!(
