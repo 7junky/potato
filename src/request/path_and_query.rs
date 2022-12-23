@@ -39,6 +39,15 @@ impl PathAndQuery {
     }
 }
 
+impl Default for PathAndQuery {
+    fn default() -> Self {
+        Self {
+            path: String::from("/"),
+            query: HashMap::default(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;

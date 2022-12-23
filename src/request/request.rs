@@ -118,7 +118,37 @@ impl Request {
         Some(format!("{:?} {} {}", method, path, version))
     }
 
-    pub fn get_route_key(&self) -> &String {
+    pub fn with_start_line(
+        &mut self,
+        method: Method,
+        target: &str,
+        version: &str,
+    ) -> &mut Self {
+        let line = StartLine::new(method, target, version);
+        let pnq = PathAndQuery::from_target(target);
+
+        self.route_key = Self::construct_route_key(
+            line.method(),
+            &pnq.path(),
+            line.version(),
+        );
+        self.start_line = line;
+        self.path_and_query = pnq;
+
+        self
+    }
+
+    pub fn with_header(&mut self, k: &str, v: &str) -> &mut Self {
+        self.headers.insert(k.into(), v.into());
+        self
+    }
+
+    pub fn with_content(&mut self, content: &str) -> &mut Self {
+        self.content = Some(content.to_owned());
+        self
+    }
+
+    pub fn route_key(&self) -> &String {
         match &self.route_key {
             Some(route_key) => route_key,
             None => self.start_line.line(),
@@ -154,6 +184,18 @@ impl Request {
     }
 }
 
+impl Default for Request {
+    fn default() -> Self {
+        Self {
+            start_line: StartLine::default(),
+            path_and_query: PathAndQuery::default(),
+            headers: HashMap::default(),
+            route_key: None,
+            content: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::{Method, Request};
@@ -184,7 +226,7 @@ mod test {
 
         assert_eq!(request.query().get("q"), Some(&"test".to_owned()));
 
-        assert_eq!(request.get_route_key(), "GET /search HTTP/2");
+        assert_eq!(request.route_key(), "GET /search HTTP/2");
 
         assert!(request.content().is_some());
         assert_eq!(request.content(), &Some("Hello".to_owned()));

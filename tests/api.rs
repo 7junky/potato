@@ -71,8 +71,10 @@ async fn init() -> TestApp {
 async fn test_get() {
     let mut app = init().await;
 
-    // TODO: content should be Option<&str>
-    let response = app.request(Method::GET, "/potato", "").await.unwrap();
+    let mut request = Request::default();
+    request.with_start_line(Method::GET, "/potato", "HTTP/1.1");
+
+    let response = app.request(request).await.unwrap();
 
     assert_eq!(response.status(), &Status::OK);
     assert_eq!(response.to_string(), "HTTP/1.1 200 OK\r\n\
@@ -93,17 +95,22 @@ async fn test_post() {
     \"age\": 22
 }";
 
-    let _response = app.request(Method::POST, "/potato", json).await.unwrap();
+    let mut request = Request::default();
+    request
+        .with_start_line(Method::POST, "/potato", "HTTP/1.1")
+        .with_content(json);
+
+    let _response = app.request(request).await.unwrap();
 }
 
 #[tokio::test]
 async fn test_delete() {
     let mut app = init().await;
 
-    let response = app
-        .request(Method::DELETE, "/potato?id=1234", "")
-        .await
-        .unwrap();
+    let mut request = Request::default();
+    request.with_start_line(Method::DELETE, "/potato?id=1234", "HTTP/1.1");
+
+    let response = app.request(request).await.unwrap();
 
     assert_eq!(response.headers().get("id").unwrap(), "1234");
 }

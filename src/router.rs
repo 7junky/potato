@@ -8,7 +8,7 @@ use tokio::sync::{RwLock, RwLockReadGuard};
 type Handler = fn(Request) -> Response;
 
 type RouteMap = HashMap<String, Handler>;
-pub type Routes = Arc<RwLock<RouteMap>>;
+pub(crate) type Routes = Arc<RwLock<RouteMap>>;
 
 pub struct Router {
     pub(crate) routes: Routes,

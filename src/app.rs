@@ -59,7 +59,7 @@ impl App {
         };
 
         let routes = routes.read().await;
-        let handle = match routes.get(req.get_route_key()) {
+        let handle = match routes.get(req.route_key()) {
             Some(handle) => handle,
             None => {
                 res.with_status(Status::NotFound)

@@ -10,6 +10,17 @@ pub(super) struct StartLine {
 }
 
 impl StartLine {
+    pub fn new(method: Method, target: &str, version: &str) -> Self {
+        let line = format!("{:?} {} {}", method, target, version);
+
+        Self {
+            line,
+            method,
+            target: target.to_owned(),
+            version: version.to_owned(),
+        }
+    }
+
     pub fn from_line(line: &str) -> Result<Self, ParseError> {
         let mut line_iter = line.split_whitespace();
 
@@ -49,6 +60,17 @@ impl StartLine {
 
     pub fn version(&self) -> &String {
         &self.version
+    }
+}
+
+impl Default for StartLine {
+    fn default() -> Self {
+        Self {
+            line: String::from("GET / HTTP/1.1"),
+            method: Method::GET,
+            target: String::from("/"),
+            version: String::from("HTTP/1.1"),
+        }
     }
 }
 
