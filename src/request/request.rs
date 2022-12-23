@@ -38,8 +38,7 @@ impl Request {
             None => Err(ParseError::NoStartLine)?,
         };
 
-        let start_line = StartLine::from_request(&start_line)?;
-        dbg!(&start_line);
+        let start_line = StartLine::from_line(&start_line)?;
 
         // Parse headers into a map:
         let headers = Self::parse_headers(&mut lines).await;
@@ -68,13 +67,13 @@ impl Request {
             _ => Some(data),
         };
 
-        let path_and_query = PathAndQuery::from_target(&start_line.target);
+        let path_and_query = PathAndQuery::from_target(&start_line.target());
 
         // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(
-            &start_line.method,
+            &start_line.method(),
             &path_and_query.path,
-            &start_line.version,
+            &start_line.version(),
         );
 
         Ok(Self {
@@ -122,24 +121,24 @@ impl Request {
     pub fn get_route_key(&self) -> &String {
         match &self.route_key {
             Some(route_key) => route_key,
-            None => &self.start_line.line,
+            None => self.start_line.line(),
         }
     }
 
     pub fn start_line(&self) -> &String {
-        &self.start_line.line
+        &self.start_line.line()
     }
 
     pub fn method(&self) -> &Method {
-        &self.start_line.method
+        &self.start_line.method()
     }
 
     pub fn target(&self) -> &String {
-        &self.start_line.target
+        &self.start_line.target()
     }
 
     pub fn version(&self) -> &String {
-        &self.start_line.version
+        &self.start_line.version()
     }
 
     pub fn headers(&self) -> &HashMap<String, String> {
