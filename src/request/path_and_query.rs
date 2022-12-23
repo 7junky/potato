@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(super) struct PathAndQuery {
-    pub(super) path: String,
-    pub(super) query: HashMap<String, String>,
+    path: String,
+    query: HashMap<String, String>,
 }
 
 impl PathAndQuery {
@@ -28,6 +28,14 @@ impl PathAndQuery {
             path: path.to_owned(),
             query,
         }
+    }
+
+    pub fn path(&self) -> &String {
+        &self.path
+    }
+
+    pub fn query(&self) -> &HashMap<String, String> {
+        &self.query
     }
 }
 

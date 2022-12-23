@@ -72,7 +72,7 @@ impl Request {
         // Construct a key that can be used to locate the handler in Router:
         let route_key = Self::construct_route_key(
             &start_line.method(),
-            &path_and_query.path,
+            &path_and_query.path(),
             &start_line.version(),
         );
 
@@ -146,7 +146,7 @@ impl Request {
     }
 
     pub fn query(&self) -> &HashMap<String, String> {
-        &self.path_and_query.query
+        &self.path_and_query.query()
     }
 
     pub fn content(&self) -> &Option<String> {
