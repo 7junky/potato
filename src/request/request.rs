@@ -160,22 +160,19 @@ mod test {
     use super::{Method, Request};
 
     #[tokio::test]
-    async fn it_works() {
+    async fn test_from_connection() {
         let raw_request = "GET /search?q=test HTTP/2\r\nHost: www.bing.com\r\nContent-Length: 5\r\nUser-Agent: curl/7.54.0\r\nAccept: */*\r\n\r\nHello";
 
         let request = Request::from_connection(&mut raw_request.as_bytes())
             .await
             .unwrap();
 
-        assert_eq!(
-            request.start_line.line,
-            "GET /search?q=test HTTP/2".to_owned()
-        );
-        assert_eq!(request.start_line.method, Method::GET);
-        assert_eq!(request.start_line.target, "/search?q=test".to_owned());
-        assert_eq!(request.start_line.version, "HTTP/2".to_owned());
+        assert_eq!(request.start_line(), "GET /search?q=test HTTP/2");
+        assert_eq!(request.method(), &Method::GET);
+        assert_eq!(request.target(), "/search?q=test");
+        assert_eq!(request.version(), "HTTP/2");
 
-        assert_eq!(request.headers.len(), 4);
+        assert_eq!(request.headers().len(), 4);
         assert_eq!(
             request.headers.get("User-Agent"),
             Some(&"curl/7.54.0".to_owned())
@@ -186,14 +183,11 @@ mod test {
             Some(&"www.bing.com".to_owned())
         );
 
-        assert_eq!(
-            request.path_and_query.query.get("q"),
-            Some(&"test".to_owned())
-        );
+        assert_eq!(request.query().get("q"), Some(&"test".to_owned()));
 
-        assert_eq!(request.route_key, Some("GET /search HTTP/2".to_owned()));
+        assert_eq!(request.get_route_key(), "GET /search HTTP/2");
 
-        assert!(request.content.is_some());
-        assert_eq!(request.content.unwrap(), "Hello");
+        assert!(request.content().is_some());
+        assert_eq!(request.content(), &Some("Hello".to_owned()));
     }
 }
