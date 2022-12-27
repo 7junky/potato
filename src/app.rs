@@ -2,7 +2,7 @@ use crate::request::Request;
 use crate::response::Response;
 use crate::router::Router;
 use crate::router::Routes;
-use crate::status::Status;
+use crate::Status;
 
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};

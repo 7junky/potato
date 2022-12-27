@@ -2,9 +2,8 @@ use chrono::prelude::*;
 
 use potato::app::App;
 use potato::request::{Method, Request};
-use potato::response::{Cookie, Response};
+use potato::response::{Cookie, Response, Status};
 use potato::router::Router;
-use potato::status::Status;
 
 fn get(request: Request) -> Response {
     let mut response = Response::new();
