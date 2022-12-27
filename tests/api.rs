@@ -33,6 +33,20 @@ fn get(request: Request) -> Response {
     response
 }
 
+fn post(request: Request) -> Response {
+    let content = match request.content() {
+        Some(s) => s,
+        None => "",
+    };
+
+    let mut response = Response::new();
+    response
+        .with_status(Status::Created)
+        .with_content(content.to_owned());
+
+    response
+}
+
 fn delete(request: Request) -> Response {
     let mut response = Response::new();
 
@@ -56,7 +70,7 @@ async fn init() -> App {
 
     router
         .add(Method::GET, "/potato", get)
-        .add(Method::POST, "/potato", get)
+        .add(Method::POST, "/potato", post)
         .add(Method::PATCH, "/potato", get)
         .add(Method::DELETE, "/potato", delete);
 
@@ -96,7 +110,10 @@ async fn test_post() {
         .with_start_line(Method::POST, "/potato", "HTTP/1.1")
         .with_content(json);
 
-    let _response = app.request(request).await.unwrap();
+    let response = app.request(request).await.unwrap();
+
+    assert_eq!(response.status(), &Status::Created);
+    assert_eq!(response.content(), &json.to_owned());
 }
 
 #[tokio::test]
