@@ -5,7 +5,6 @@ use potato::request::{Method, Request};
 use potato::response::{Cookie, Response};
 use potato::router::Router;
 use potato::status::Status;
-use potato::test::TestApp;
 
 fn get(request: Request) -> Response {
     let mut response = Response::new();
@@ -53,7 +52,7 @@ fn delete(request: Request) -> Response {
     response
 }
 
-async fn init() -> TestApp {
+async fn init() -> App {
     let mut router = Router::new();
 
     router
@@ -62,9 +61,7 @@ async fn init() -> TestApp {
         .add(Method::PATCH, "/potato", get)
         .add(Method::DELETE, "/potato", delete);
 
-    let app = App::new(router);
-
-    TestApp::serve(app)
+    App::new(router)
 }
 
 #[tokio::test]

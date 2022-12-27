@@ -73,4 +73,19 @@ impl App {
 
         Ok(())
     }
+
+    pub async fn request(
+        &mut self,
+        request: Request,
+    ) -> Result<Response, Status> {
+        self.router.build().await;
+        let routes = self.router.get_routes().await;
+        let route_key = request.route_key();
+        let handler = match routes.get(route_key) {
+            Some(h) => h,
+            None => Err(Status::NotFound)?,
+        };
+
+        Ok(handler(request))
+    }
 }
